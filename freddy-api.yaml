@@ -1,0 +1,403 @@
+openapi: 3.0.1
+info:
+  title: Freddy API
+  description: > 
+  
+    # Introduction
+    
+    The Freddy API is a HTTP-based RESTful API, which is used to manage Freddy's candy orders.
+   
+
+  version: '0.1'
+servers:
+  - url: 'https://freddy.codesubmit.io'
+tags:
+  - name: Authorization
+  - name: Statistics
+  
+paths:
+  /login:
+    post:
+      summary: Get an access token and a refresh token
+      description: >
+        
+        Returns an access token and a refresh token.
+        
+        The JSON Web Tokens are short-lived:
+        
+          * An access token is valid for 15 minutes.
+          
+          * A refresh token is valid for 30 days.
+      tags:
+        - Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+            example:
+              username: freddy
+              password: ElmStreet2019
+      responses:
+        '200':
+          description: An access token and a refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tokens'
+              example:
+                access_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2MTEyNjA3ODQsIm5iZiI6MTYxMTI2MDc4NCwianRpIjoiMjdhNjZmNGEtMGQ2Yy00N2VmLTg3NTgtZWU2NTI0YTNkYzZjIiwiZXhwIjoxNjExMjYxNjg0LCJpZGVudGl0eSI6ImZyZWRkeSIsImZyZXNoIjpmYWxzZSwidHlwZSI6ImFjY2VzcyJ9.NdoZ0BRC0zjRAY2mozd9qRELKYMz_e5ugOA5TKYGL98
+                refresh_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2MTEyNjA3ODQsIm5iZiI6MTYxMTI2MDc4NCwianRpIjoiNmFiMDNhNDEtNTAzZS00NTc4LTk4OWQtMDUzZTIyNGY0OWE2IiwiZXhwIjoxNjEzODUyNzg0LCJpZGVudGl0eSI6ImZyZWRkeSIsInR5cGUiOiJyZWZyZXNoIn0.btI1sq5qv63VxPUBDkVmibKPOzjo63JZTe8re1R_r3M      
+        '400':
+          description: Bad Request
+          content:
+            text/html:
+              example:
+                <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+                
+                <title>400 Bad Request</title>
+                
+                <h1>Bad Request</h1>
+                
+                <p>The browser (or proxy) sent a request that this server could not understand.</p>
+        '401':
+          description: Unauthorized. Invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example: 
+                msg: Bad credentials
+  
+  /refresh:
+    post:
+      summary: Refresh an access token
+      description: >
+        Returns a new access token.
+        
+        A refresh token must be used in the Authorization Header.
+      tags:
+        - Authorization
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessToken'
+              example:
+                access_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2MTEyMzAwMDMsIm5iZiI6MTYxMTIzMDAwMywianRpIjoiYjI2ZTcyOGQtN2IxYi00NjYyLTljYWMtM2Y2MTNjY2M0MzFlIiwiZXhwIjoxNjExMjMwOTAzLCJpZGVudGl0eSI6ImZyZWRkeSIsImZyZXNoIjpmYWxzZSwidHlwZSI6ImFjY2VzcyJ9.K3Lep8QkQ6hBFG9Shnhzemol3gPNsgTOxCHKhlaRV5k
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  
+  /orders:
+    get:
+      summary: Retrieve orders
+      description: Returns an order list. A page number and a product name can be specified.
+      tags:
+        - Statistics
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: 
+            type: integer
+          description: A page number
+          example: 2
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: A search term
+          example: snack
+      responses:
+        '200':
+          description: Order list
+          content:
+            application/json:
+             schema:
+               $ref: '#/components/schemas/Orders'  
+          # No real-life response example for the sake of brevity
+        '401':
+          $ref: '#/components/responses/Unauthorized'         
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+          
+  /dashboard:
+    get:
+      summary: Retrieve a dashboard
+      description: Returns a dashboard
+      tags:
+        - Statistics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dashboard
+          content:
+            application/json:
+             schema:
+               $ref: '#/components/schemas/Dashboard'  
+          # No real-life response example for the sake of brevity
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        The Freddy API uses short-lived JSON Web Tokens (JWT) to authenticate an access. The token must be included in the Authorization Header using the Bearer schema. To get an access token and a refresh token, make [POST requests](#/Authorization) to the corresponding endpoints.
+      
+  schemas:
+  
+    Login:
+      type: object
+      properties:
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          format: password
+          description: The user password
+          
+    Tokens:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+          
+    AccessToken:
+      type: object
+      properties:
+        access_token:
+          type: string
+          
+    Orders:
+      type: object
+      properties:
+        orders:
+          type: array
+          description: The list of orders
+          items:
+            type: object
+            properties:
+              created_at:
+                type: string
+                format: date-time
+                description: The UTC date and time at which the order was created
+              currency:
+                type: string
+                description: The payment currency
+                example: $ # Only one currency represented now. Better to add enum.
+              customer:
+                type: object
+                description: The customer personal data
+                properties:
+                  address:
+                    type: object
+                    description: The customer's address
+                    properties:
+                      city: 
+                        type: string
+                      street:
+                        type: string
+                      zipcode:
+                        type: string
+                  avatar:
+                    type: string
+                    description: The customer's avatar
+                  email:
+                    type: string
+                    format: email
+                    description: The customer's email
+                  id:
+                    type: string
+                    description: The customer identification number
+                  name: 
+                    type: string
+                    description: The customer's name
+                  surname:
+                    type: string
+                    description: The customer's surname
+              id:
+                type: string
+                description: The order identification number
+              product:
+                type: object
+                description: The ordered product
+                properties:
+                  id: 
+                    type: string
+                    description: The ID of the product
+                  image:
+                    type: string
+                    description: The image of the product
+                  name:
+                    type: string
+                    description: The product name
+                  quantity:
+                    type: integer
+                    description: The number of ordered items
+              status:
+                type: string
+                description: >
+                  The order status:
+                    * Processing
+                    * Shipped
+                    * Delivered
+                enum:
+                  - processing
+                  - shipped
+                  - delivered
+              total:
+                type: integer
+                description: The total cost of the order
+        page:
+          type: integer # Zero is a valid value. Why?
+          description: The page number
+        total:
+          type: integer
+          description: The total number of orders on the page
+          
+    Dashboard:
+      type: object
+      properties:
+        dashboard:
+          type: object
+          properties:
+            bestsellers:
+              type: array
+              description: The list of the best-selling products
+              items:
+                type: object
+                properties:
+                  product:
+                    type: object
+                    properties:
+                      id: 
+                        type: string
+                        description: The ID of the product
+                        example: 99564712-9bb0-fc90-aae4-5d7dcc6dd35a
+                      image:
+                        type: string
+                        description: The image of the product
+                        example: https://images.unsplash.com/photo-1463860914822-61dc3ee606f7?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=500&ixid=eyJhcHBfaWQiOjF9&ixlib=rb-1.2.1&q=80&w=500
+                      name:
+                        type: string
+                        description: The product name
+                        example: Magik Lamp Jasmine Flowers Cowberry Drops
+                  revenue: 
+                    type: integer
+                    description: The product revenue
+                  units:
+                    type: integer
+                    description: The number of sold units
+            sales_over_time_week:
+              type: object
+              description: Sales over each day of the week
+              properties:
+                1:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                2:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                3:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                4:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                5:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                6:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                7:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+            sales_over_time_year:
+              type: object
+              description: Sales over each month of the year
+              properties:
+                1:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                2:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                3:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                4:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                5:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                6:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                7:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                8:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'              
+                9:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'        
+                10: 
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                11:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'
+                12:
+                  $ref: '#/components/schemas/SalesOverTimeUnit'              
+                
+    SalesOverTimeUnit:
+      type: object
+      properties:
+        orders:
+          type: integer
+        total:
+          type: integer
+          
+    # Schema for error response body
+    Error:
+      type: object
+      properties:
+        msg:
+          type: string
+          description: A human-readable explanation of the problem
+          
+  responses:
+  
+    # 401
+    Unauthorized:
+      description: Unauthorized. The token is missing or expired.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            MissingHeader:
+              value:
+                msg: Missing Authorization Header
+            ExpiredToken:
+              value:
+                msg: Token has expired
+                
+    # 422
+    UnprocessableEntity:
+      description: Unprocessable entity. The token is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            VerificationFailed:
+              value:
+                msg: Signature verification failed     
+            InvalidByte:
+              value:
+                msg: "Invalid payload string: 'utf-8' codec can't decode byte 0xa2 in position 27: invalid start byte"
